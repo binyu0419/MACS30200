@@ -1,0 +1,176 @@
+---
+title: "Implementation studies code"
+author: "Bin Yu"
+date: "2024-04-27"
+output: html_document
+---
+
+```{r}
+
+library(lme4)
+library(readxl)
+
+data <- read_excel("/Users/yubin/MACS30123/IS/data_final_cleaned.xlsx")
+str(data)
+
+data$HavingPrEP[data$HavingPrEP == 2] <- 0
+data$Income <- factor(data$Income)
+data$SexualPartners <- factor(data$SexualPartners)
+data$Education <- factor(data$Education)
+data$Income <- factor(data$Income)
+data$Transactionsex <- factor(data$Transactionsex)
+data$Druguse <- factor(data$Druguse)
+data$SexualPartners <- factor(data$SexualPartners)
+data$HIVtest <- factor(data$HIVtest)
+data$Condomuse <- factor(data$Condomuse)
+data$HavingSTI <- factor(data$HavingSTI)
+data$HavingPEP <- factor(data$HavingPEP)
+data$KnowaboutPrEP <- factor(data$KnowaboutPrEP)
+data$HIVeducation <- factor(data$HIVeducation)
+data$HavingPrEP <- factor(data$HavingPrEP)
+data$Rushandalcoholduringsex <- factor(data$Rushandalcoholduringsex)
+
+#LR
+variables <- c("Education", "Income", "Transactionsex", "Druguse", "SexualPartners", "Condomuse", "HavingSTI", "HavingPEP", "KnowaboutPrEP", "Region",
+               "Age", "prepknowledge", "Rushandalcoholduringsex", "HIVeducation", 
+               "HavingPrEP", "prepselfefficacy", "prepattitudes", "prepstigma", "prepintentions")
+
+significant_vars <- c()
+
+for (var in variables) {
+  formula <- as.formula(paste("Adherence ~", var))
+  model <- glm(formula, data = data, family = binomial(link = "logit"))
+  p_value <- summary(model)$coefficients[2, 4]
+  if (p_value < 0.1) {
+    significant_vars <- c(significant_vars, var)
+  }
+}
+
+print(significant_vars)
+
+#Multi
+multivar_formula <- paste("Adherence ~", paste(significant_vars, collapse = " + "))
+
+final_model <- glm(multivar_formula, data = data, family = binomial(link = "logit"))
+
+summary(final_model)
+
+coef_estimates <- summary(final_model)$coefficients
+
+# Odds Ratios
+odds_ratios <- exp(coef_estimates[, "Estimate"])
+
+#95%CI
+ci_lower <- exp(coef_estimates[, "Estimate"] - 1.96 * coef_estimates[, "Std. Error"])
+ci_upper <- exp(coef_estimates[, "Estimate"] + 1.96 * coef_estimates[, "Std. Error"])
+
+results <- data.frame(
+  OddsRatio = odds_ratios,
+  LowerCI = ci_lower,
+  UpperCI = ci_upper
+)
+
+# 查看结果
+print(results)
+
+
+variables <- c("Education", "Income", "Transactionsex", "Druguse", "SexualPartners", "Condomuse", "HavingSTI", "HavingPEP", "KnowaboutPrEP", "Region",
+               "Age", "prepknowledge", "Rushandalcoholduringsex", "HIVeducation", 
+               "HavingPrEP", "prepselfefficacy", "prepattitudes", "prepstigma", "prepintentions")
+
+# 存储 p 值小于 0.1 的变量
+significant_vars <- c()
+
+# 进行单变量逻辑回归
+for (var in variables) {
+  formula <- as.formula(paste("quit ~", var))
+  model <- glm(formula, data = data, family = binomial(link = "logit"))
+  p_value <- summary(model)$coefficients[2, 4]
+  if (p_value < 0.1) {
+    significant_vars <- c(significant_vars, var)
+  }
+}
+
+print(significant_vars)
+
+# 构建多变量模型的公式字符串
+multivar_formula <- paste("quit ~", paste(significant_vars, collapse = " + "))
+
+# 多变量逻辑回归
+final_model <- glm(multivar_formula, data = data, family = binomial(link = "logit"))
+
+summary(final_model)
+
+coef_estimates <- summary(final_model)$coefficients
+
+# Odds Ratios
+odds_ratios <- exp(coef_estimates[, "Estimate"])
+
+#95%CI
+ci_lower <- exp(coef_estimates[, "Estimate"] - 1.96 * coef_estimates[, "Std. Error"])
+ci_upper <- exp(coef_estimates[, "Estimate"] + 1.96 * coef_estimates[, "Std. Error"])
+
+results <- data.frame(
+  OddsRatio = odds_ratios,
+  LowerCI = ci_lower,
+  UpperCI = ci_upper
+)
+
+# 查看结果
+print(results)
+
+
+model <- glmer(Adherence ~ Education +Income+ Druguse	+ SexualPartners +	HIVtest + HavingPEP	+ KnowaboutPrEP +	Age	+ prepknowledge	+ Rushandalcoholduringsex	+HIVeducation	+HavingPrEP	+prepselfefficacy	+prepattitudes	+ prepintentions + (1 | Region), 
+               data = data, 
+               family = binomial(link = "logit"))
+
+library(lmerTest) 
+summary(model)
+
+
+coef_estimates <- summary(model)$coefficients
+
+# Odds Ratios
+odds_ratios <- exp(coef_estimates[, "Estimate"])
+
+#95%CI
+ci_lower <- exp(coef_estimates[, "Estimate"] - 1.96 * coef_estimates[, "Std. Error"])
+ci_upper <- exp(coef_estimates[, "Estimate"] + 1.96 * coef_estimates[, "Std. Error"])
+
+results <- data.frame(
+  OddsRatio = odds_ratios,
+  LowerCI = ci_lower,
+  UpperCI = ci_upper
+)
+
+# 查看结果
+print(results)
+
+
+model <- glmer(quit ~ Education +Income+ Druguse + HavingPEP	+ KnowaboutPrEP +	Age	+ prepknowledge	+ Rushandalcoholduringsex	+HIVeducation	+HavingPrEP	+prepselfefficacy	+prepattitudes	+ prepintentions + (1 | Region), 
+               data = data, 
+               family = binomial(link = "logit"))
+
+library(lmerTest) 
+summary(model)
+
+
+coef_estimates <- summary(model)$coefficients
+
+# Odds Ratios
+odds_ratios <- exp(coef_estimates[, "Estimate"])
+
+#95%CI
+ci_lower <- exp(coef_estimates[, "Estimate"] - 1.96 * coef_estimates[, "Std. Error"])
+ci_upper <- exp(coef_estimates[, "Estimate"] + 1.96 * coef_estimates[, "Std. Error"])
+
+results <- data.frame(
+  OddsRatio = odds_ratios,
+  LowerCI = ci_lower,
+  UpperCI = ci_upper
+)
+
+# 查看结果
+print(results)
+
+```
