@@ -1,0 +1,167 @@
+{r}
+library(lme4)
+library(readxl)
+
+```{r}
+library(readxl)
+library(dplyr)
+library(purrr)  # 加载 purrr 包以使用 map 函数
+
+# 重新加载数据并进行必要的预处理
+data <- read_excel("/Users/yubin/MACS30123/IS/data_final_cleaned.xlsx")
+data$HavingPrEP[data$HavingPrEP == 2] <- 0
+data$Income <- as.factor(data$Income)
+data$SexualPartners <- as.factor(data$SexualPartners)
+data$Education <- as.factor(data$Education)
+data$Transactionsex <- as.factor(data$Transactionsex)
+data$Druguse <- as.factor(data$Druguse)
+data$HIVtest <- as.factor(data$HIVtest)
+data$Condomuse <- as.factor(data$Condomuse)
+data$HavingSTI <- as.factor(data$HavingSTI)
+data$HavingPEP <- as.factor(data$HavingPEP)
+data$KnowaboutPrEP <- as.factor(data$KnowaboutPrEP)
+data$HIVeducation <- as.factor(data$HIVeducation)
+data$HavingPrEP <- as.factor(data$HavingPrEP)
+data$Rushandalcoholduringsex <- as.factor(data$Rushandalcoholduringsex)
+data$Region <- as.factor(data$Region)
+data$Sex <- as.factor(data$Sex)
+data$quit <- as.factor(data$quit)
+data$Adherence <- as.factor(data$Adherence)
+data$Partner <- as.factor(data$Partner)
+# 获取分类变量的计数
+category_summaries <- data %>%
+  group_by(Region) %>%
+  summarise(across(where(is.factor), ~list(table(.)), .names = "{.col}_count"), .groups = 'drop')
+
+# 使用 purrr 包的 map 函数打印每个列表中的表格内容
+map(category_summaries, ~map(.x, print))
+
+# 计算数值变量的平均值和标准差
+numeric_summaries <- data %>%
+  group_by(Region) %>%
+  summarise(across(where(is.numeric), 
+                   list(mean = ~mean(.x, na.rm = TRUE), 
+                        sd = ~sd(.x, na.rm = TRUE)),
+                   .names = "{.col}_{.fn}"), 
+            .groups = 'drop')
+
+# 打印结果
+print(numeric_summaries)
+```
+
+```{r}
+library(readxl)
+library(dplyr)
+library(purrr)
+library(tidyr)
+library(broom)  # 用于将统计测试结果转换为整洁格式
+
+# 数据预处理（确保之前的预处理步骤已经完成）
+
+# 卡方检验 - 检查分类变量
+chi_results <- list()
+factor_vars <- sapply(data, is.factor)
+
+for (var in names(factor_vars[factor_vars])) {
+  if (var != "Region") {
+    chi_table <- table(data$Region, data[[var]])
+    chi_test <- chisq.test(chi_table)
+    chi_results[[var]] <- tidy(chi_test)
+  }
+}
+
+# ANOVA - 检查数值变量
+anova_results <- list()
+numeric_vars <- sapply(data, is.numeric)
+
+for (var in names(numeric_vars[numeric_vars])) {
+  formula <- as.formula(paste(var, "~ Region"))
+  anova_test <- aov(formula, data = data)
+  anova_results[[var]] <- tidy(anova_test)
+}
+
+# 打印卡方检验的 p 值
+print(map(chi_results, ~ .x$p.value))
+
+# 打印ANOVA的 p 值
+print(map(anova_results, ~ .x$p.value))
+
+```
+```{r}
+library(dplyr)
+library(readxl)
+
+# 加载数据
+data <- read_excel("/Users/yubin/MACS30123/IS/data_final_cleaned.xlsx")
+
+# 数据预处理
+data$HavingPrEP[data$HavingPrEP == 2] <- 0
+data <- data %>%
+  mutate(
+    Income = as.factor(Income),
+    SexualPartners = as.factor(SexualPartners),
+    Education = as.factor(Education),
+    Transactionsex = as.factor(Transactionsex),
+    Druguse = as.factor(Druguse),
+    HIVtest = as.factor(HIVtest),
+    Condomuse = as.factor(Condomuse),
+    HavingSTI = as.factor(HavingSTI),
+    HavingPEP = as.factor(HavingPEP),
+    KnowaboutPrEP = as.factor(KnowaboutPrEP),
+    HIVeducation = as.factor(HIVeducation),
+    HavingPrEP = as.factor(HavingPrEP),
+    Rushandalcoholduringsex = as.factor(Rushandalcoholduringsex),
+    Region = as.factor(Region),
+    Sex = as.factor(Sex),
+    quit = as.factor(quit),
+    Adherence = as.factor(Adherence),
+    Partner = as.factor(Partner)
+  )
+
+# 设置因变量和自变量
+outcomes <- c("Adherence", "quit")
+regions <- c("0", "1") # Assuming "0" is Guangzhou and "1" is Wuhan
+variables <- c("Education", "Income", "Transactionsex", "Druguse", "SexualPartners", "Condomuse", "HavingSTI", "HavingPEP", "KnowaboutPrEP",
+               "Age", "prepknowledge", "Rushandalcoholduringsex", "HIVeducation", 
+               "HavingPrEP", "prepselfefficacy", "prepattitudes", "prepstigma", "prepintentions")
+
+# 运行模型
+for (region in regions) {
+  for (outcome in outcomes) {
+    cat("\nRunning logistic regression for", outcome, "in Region", region, "\n")
+    subset_data <- filter(data, Region == region)
+    
+    significant_vars <- c()
+    for (var in variables) {
+      formula <- as.formula(paste(outcome, "~", var))
+      model <- glm(formula, data = subset_data, family = binomial(link = "logit"))
+      p_value <- summary(model)$coefficients[2, 4]
+      if (p_value < 0.1) {
+        significant_vars <- c(significant_vars, var)
+      }
+    }
+    
+    cat("Significant variables for", outcome, "in Region", region, ":", significant_vars, "\n")
+    
+    if (length(significant_vars) > 0) {
+      multivar_formula <- paste(outcome, "~", paste(significant_vars, collapse = " + "))
+      final_model <- glm(multivar_formula, data = subset_data, family = binomial(link = "logit"))
+      cat("Summary for", outcome, "in Region", region, ":\n")
+      print(summary(final_model))
+      
+      # Odds Ratios
+      coef_estimates <- summary(final_model)$coefficients
+      odds_ratios <- exp(coef_estimates[, "Estimate"])
+      ci_lower <- exp(coef_estimates[, "Estimate"] - 1.96 * coef_estimates[, "Std. Error"])
+      ci_upper <- exp(coef_estimates[, "Estimate"] + 1.96 * coef_estimates[, "Std. Error"])
+      results <- data.frame(Variable = rownames(coef_estimates), OddsRatio = odds_ratios, LowerCI = ci_lower, UpperCI = ci_upper)
+      
+      print(results)
+    } else {
+      cat("No significant variables found for", outcome, "in Region", region, "\n")
+    }
+  }
+}
+
+```
+
