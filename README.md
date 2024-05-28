@@ -34,7 +34,7 @@ To reproduce the findings and generate the results, follow these steps in RStudi
    ```
 2. **Run R Markdown File**
   ```R
-   rmarkdown::render("Final_code.Rmd")
+   rmarkdown::render("Final Code.Rmd")
   ```
 ## Citation
 
